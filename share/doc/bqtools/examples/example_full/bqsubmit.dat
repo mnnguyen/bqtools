@@ -1,0 +1,148 @@
+######################################################################
+# $Id: bqsubmit.dat,v 1.7 2005/08/24 16:55:11 minh Exp $
+######################################################################
+#
+# Configuration file example (bqsubmit.dat)
+#
+######################################################################
+
+
+#---------------------------------------------------------------------
+# Jobs Name [Optional]
+#
+# Jobs name on the cluster (see bqstat command). All the jobs will
+# have the same name. Also the prefix used for the names of 
+# subdirectory cases.
+
+jobName =  mytest
+
+
+#---------------------------------------------------------------------
+# User program command [Required]
+#
+# Command executed on node (don't forget the "./"!)
+
+command = ./a.out
+
+#
+#
+#
+
+remoteHost = auto 
+
+#---------------------------------------------------------------------
+# Max running jobs [Optional]
+#
+# Limits the number of jobs to be queued at the same time on the
+# cluster.
+
+maxRunningJobs = 10
+
+#---------------------------------------------------------------------
+#                          FILES DIRECTIVES
+# The file directives describes how the files neccessary to each 
+# job will be handled. Multiple filenames must be seperated 
+# with semicolon ;
+
+#---------------------------------------------------------------------
+# Symbolic links [Optional]
+#
+# Large read only files such as binary executables, libraries,
+# and input files (other than templatized input files), should not be 
+# copied in each job directory. Symbolic links must instead  be 
+# requested by using the filesLink directive.
+
+filesLink = a.out;megalib.a;dirlib
+
+#---------------------------------------------------------------------
+# Template files [Optional]
+#
+# The template files, which are the usual program input files in which
+# token has been inserted, will be parsed and token will be replaced 
+# with values in the input files in each case directory. The token 
+# will vary according to the parameters variation set by using the 
+# param* directives.
+
+filesTemplate = data_x.tpl;data_y.tpl
+
+#---------------------------------------------------------------------
+# Copied files [Optional]
+#
+# List files that will be modified during the execution of the 
+# program. These files will be copied to each case directory prior
+# to the program execution. The files that are created by the program
+# during execution do not need to be listed here.
+
+filesCopy = varydata.dat
+
+#---------------------------------------------------------------------
+#                 PRE- AND POST-PROCESSING DIRECTIVES
+# This section deals with the possibility for the user to pre and 
+# post process data. The user just has to give the command to
+# execute at for possible moments in the process. The command could
+# be a user made script, or visualisation programs, etc...
+
+#---------------------------------------------------------------------
+# preBatch [Optional]
+# 
+# Will be run from the working directory where bqsubmit is launched
+# after all the case directories are created but prior to the 
+# submission of the job.
+
+preBatch  = ./myPreBatchScript.sh
+
+#---------------------------------------------------------------------
+# preJob [Optional]
+# 
+# Will be run from each job directory immediately after the preBatch
+# and just before the job is submitted.
+
+preJob  = ../../myPreJobScript.sh
+
+#---------------------------------------------------------------------
+# postJob [Optional]
+# 
+# Will be run from each job directory immediately after the job is
+# completed.
+
+postJob = ../../myPostJobScript.sh
+
+#---------------------------------------------------------------------
+# postBatch [Optional]
+# 
+# Will be run from the working directory where bqsubmit is launched
+# after all the cases are completed and after all the postJob has run
+# This is useful to gather results of all the cases in few files
+# for analysis and visualisation for example.
+
+postBatch = ./myPostBatchScript.sh
+
+#---------------------------------------------------------------------
+#                      PARAMETERS DIRECTIVES
+#
+# Use these directives to indicate how the token values will vary
+# from one job to the other. The parameters will determine the
+# number of jobs (cases) to create, one for each possible set 
+# of variables. Each parameter correspond to a token in the template
+# file (~~i~~, ~~j~~ and ~~k~~ for example). With the following
+# directives 90 cases will be created and submitted by bqsubmit.
+
+param1 = i = 1   : 1   : 2 
+param2 = j = 1   : 8   : 15 
+param3 = k = 0.0 : 1.0 : 2.0 
+
+# Here are others options (see documentation for more explanations)
+
+#param4 = i = [0.9 1.0 1.1 1.2 1.3 1.4 1.5]
+#param5 = (i,j,k) = [(1,2,3),(4,5,6),(7,8,9),(10,11,12)]
+#param6 = i = load a.txt
+#param7 = (i,j,k) = load abc.txt
+#param8 = (i,j,k) = load a.txt b.txt c.txt
+
+# You can also declare fixed variables and refer to them from the
+# data template files, in this case ~~COUCOU~~ and ~~beta~~.
+
+COUCOU=5.67
+beta = 3.42
+
+

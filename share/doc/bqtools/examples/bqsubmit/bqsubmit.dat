@@ -1,0 +1,7 @@
+###############################################################################
+# Lines starting with # are ignored.
+###############################################################################
+
+command=./ohms_law input.dat > output.dat
+submitOptions= -q qwork -l walltime=1:00
+

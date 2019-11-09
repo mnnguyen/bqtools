@@ -1,0 +1,79 @@
+#!/bin/sh
+###############################################################################
+# Batch Queuing Tools (bqTools) 
+#
+# Copyright (C) 2018  Minh-Nghia Nguyen <Minh-Nghia.Nguyen@CalculQuebec.ca>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+
+show_help() {
+cat <<HELPMESSAGE
+Usage:  bqstatus [OPTION] [ArrayJobID]
+
+Show all running job arrays launched by bqsubmit command.  Show detailed status
+if ArrayJobID is defined.
+
+  ArrayJobID
+      Job ID of the job array
+
+  -h
+      Display this help and exit
+HELPMESSAGE
+}
+
+SACCT_FORMAT=JobID%16,User%8,Account%12,JobName%14,ReqNodes,ReqCPUS,ReqMem,TimeLimit,Elapsed,Start,End,NodeList,ExitCode,State
+
+while getopts "h" opt
+do
+	case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+            exit 1
+			;;
+		:)	
+			echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+			;;
+	esac
+done
+
+if [ "$#" -gt 0 ]; then
+	sacct --allocations --job=$1
+else
+	#sacct --allocations
+
+	printf "%10s %16s %-60s\n" ArrayJobID JobName Comment
+	echo "---------- ---------------- ------------------------------------------------------------"
+
+	#	squeue --user=$USER --states=pending --noheader --format='%20F %16j'
+
+#	sacct --user=$USER --noheader --allocation --starttime=$(date +%Y-%m-%d -d "5 days ago") --format=jobid%20,jobname%20,comment%60 | \
+#	while read JobID JobName; do
+#		printf "%10s %16s %-60s\n" $(awk -F '_' '{print $1}' <<< $JobID) $JobName
+#	done  | sort | uniq
+#
+#	echo "---------- ---------------- ------------------------------------------------------------"
+
+	squeue --user=$USER --noheader --format='%i %j' | \
+	while read JobID JobName; do
+		printf "%10s %16s\n" $(awk -F '_' '{print $1}' <<< $JobID) $JobName
+	done  | sort | uniq 
+
+	echo "---------- ---------------- ------------------------------------------------------------"
+fi

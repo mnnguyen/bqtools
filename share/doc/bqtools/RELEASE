@@ -1,0 +1,47 @@
+# Changelog
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased] 
+### Changed
+
+
+## [5.0-RC1] - 2018-09-06
+### Added
+- Slurm scheduler support (tested with Slurm 17.11.x)
+- Bqsubmit advanced option keywords (keysList, valuesList) added to
+  give more flexibility for values generation.  See bqsubmit.dat.sample
+  file for examples.
+
+### Changed
+- Job submission is managed by the Slurm scheduler job array feature
+- Micro job execution is managed by GNU Parallel ver. 20180122 
+- User command output messages changed
+- Email notification is done by the Slurm scheduler.
+- Detailed bqsubmit.dat sample
+- Param loop specification changed:
+    -Array values::
+       Old:  temperature = [10.0, 12.0, 14.0]
+       New:  temperature = 10.0 12.0 14.0
+    -Sequence of numbers:
+       Old:  temperature = 10 : 2.0 : 14
+       New:  temperature = $(seq 10 2.0 14)
+    -Values from file (one value per line):
+       Old:  temperature = load temp.txt  
+       New:  temperature = $(cat temp.txt)
+
+### Removed
+- Torque scheduler support removed
+- User commands removed:  bqsub, bqdel, bqstat, bqparam, bqsub_accumulator, 
+      bqsub_fluent, bqsub_mono, bqtrv, bqwait, bqwatch
+- Bqsubmit keywords removed:  applicationType, preBatch, postJob. postBatch
+- Bqsubmit keywords removed:  emailAddress (Email notification can be set through the 
+  Slurm scheduler --mail-user and --mail-type options)
+- Multi-variables single loop param specification removed (new advanced options keywords 
+  keysList and valuesList support multi-variables single loop):
+     -param1 = (temperature,pressure) = [(10.0,101), (12.0,102), (14.0,103))]
+     -param1 = (temperature,pressure) = [(10.0:2.0:14.0, 101:1:103)]
+     -param1 = (temperature,pressure) = load temp.txt
+     -param1 = (temperature,pressure) = load temp.txt, pres.txt

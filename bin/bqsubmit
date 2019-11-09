@@ -1,0 +1,114 @@
+#!/bin/sh
+###############################################################################
+# Batch Queuing Tools (bqTools) 
+#
+# Copyright (C) 2018  Minh-Nghia Nguyen <Minh-Nghia.Nguyen@CalculQuebec.ca>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+
+show_help() {
+cat <<HELPMESSAGE
+Usage:  bqsubmit [OPTIONS]...
+
+Submit jobs that perform the same work using the same command, but operate on 
+different sets of data.  It use Slurm scheduler job array mechanism and GNU 
+Parallel features to control execution of jobs.  Each job will run on it's 
+own subdirectory and sets of data populated by values defined in this 
+configuration file.  Uncompleted or cancelled works can be restarted with 
+bqsubmit.
+
+  -f config-file
+       Configuration file to setup and submit jobs (Default: bqsubmit.dat)
+       A documented bqsubmit.dat file sample is available in the documentation 
+       directory ($BQDIR/share/doc/bqtools).
+
+  -x
+      Setup all directories without submitting      
+
+  -h
+      Display this help and exit
+HELPMESSAGE
+}
+
+CONFIG=bqsubmit.dat
+
+# Ref http://wiki.bash-hackers.org/howto/getopts_tutorial
+while getopts "hxf:" opt
+do
+	case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+		x)
+			NOSUBMIT=1
+			;;
+		f)
+			CONFIG=$OPTARG
+			;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+            exit 1
+			;;
+		:)	
+			echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+			;;
+	esac
+done
+
+BQDIR=$(dirname $(dirname $0))
+BQETC=$BQDIR/etc
+BQLIB=$BQDIR/lib/bqsubmit
+
+###############################################################################
+# Verify if the user config file is present
+###############################################################################
+if [ ! -e $CONFIG ]; then
+	echo ERROR: $CONFIG user config file is missing
+	echo
+	show_help
+	exit 1	
+fi
+
+###############################################################################
+# Create sed script file
+###############################################################################
+BATCHNAME=$(cat $BQETC/bqsubmit.conf $CONFIG | grep batchName | tail -n1 | cut -f2 -d=)
+BQSED=$PWD/.${BATCHNAME}_sed
+
+cat $CONFIG $BQETC/bqsubmit.conf | $BQLIB/inputs2sed.pl > $BQSED
+
+###############################################################################
+# Setup all directories
+###############################################################################
+sed -f $BQSED $BQLIB/setup.template > $PWD/${BATCHNAME}_setup.sh
+printf "Running ${BATCHNAME}_setup.sh "
+sh ${BATCHNAME}_setup.sh
+
+###############################################################################
+# Submit to Slurm scheduler
+###############################################################################
+sed -f $BQSED $BQLIB/submit.template > $PWD/${BATCHNAME}_submit.sh
+sed -f $BQSED $BQLIB/script.template > $PWD/${BATCHNAME}_script.sh
+
+if [ "$NOSUBMIT" ]; then
+	echo 
+	echo To submit this batch: sh ${BATCHNAME}_submit.sh 
+else	
+    echo
+	printf "Running ${BATCHNAME}_submit.sh "
+	sh ${BATCHNAME}_submit.sh
+fi

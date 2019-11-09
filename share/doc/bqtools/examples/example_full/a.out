@@ -1,0 +1,4 @@
+echo "hello world"
+sleep 60
+echo "the value of data_x.tpl is"
+cat data_x.tpl

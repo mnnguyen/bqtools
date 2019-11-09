@@ -1,0 +1,36 @@
+###############################################################################
+# Configuration file for bqsubmit
+#
+# For a complete description of all keywords, a template is available at:
+#     $BQDIR/etc/bqsubmit.dat
+###############################################################################
+
+# Execute ohms_law and redirect output to output.dat file.
+command=./ohms_law input.dat > output.dat
+submitOptions= -q qwork -l walltime=1:00
+
+# Extract values from output.dat file and write values to data.txt file 
+# in each job directory.
+postJob=echo `grep Current output.dat` `grep Power output.dat` | cut -f 3,7 -d ' ' > data.txt
+
+# Create a plot file with gnuplot in the batch directory.
+postBatch=./postbatch.sh output.txt output.png 10.0
+
+# Constant values.
+resistance = 10.0
+
+# Varying values.
+param1 = current = 0.0 : 0.2 : 2.0 
+
+# Specify template files where tokens will be replaced by their values.  The
+# resulting files will be written in each job directory.
+templateFiles = ./input.dat
+
+# Specify which files must to be link in the job directory.
+linkFiles = ./ohms_law
+
+# Specify count of sequential jobs.
+microJobs = 4
+
+# Specify the number of jobs to be queued or running at any time.
+concurrentJobs = 2

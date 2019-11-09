@@ -1,0 +1,62 @@
+#!/bin/sh
+###############################################################################
+# Batch Queuing Tools (bqTools) 
+#
+# Copyright (C) 2018  Minh-Nghia Nguyen <Minh-Nghia.Nguyen@CalculQuebec.ca>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+
+show_help() {
+cat <<HELPMESSAGE
+Usage:  bqdelete [OPTION] [ArrayJobID] [JobID]
+
+Delete one or all elements of a job array.  It used Slurm scheduler scancel
+command.  Uncompleted or cancelled works can be restarted with bqsubmit.
+
+  ArrayJobID
+      Job ID of the job array.  All elements of that job array will be 
+      cancelled (Ex.: 1234).  
+
+  JobID
+      Job ID of one element of a job array (Ex.: 1234_5).
+
+  -h
+      Display this help and exit
+HELPMESSAGE
+}
+
+while getopts "h" opt
+do
+	case $opt in
+        h)
+            show_help
+            exit 0
+            ;;
+		\?)
+			echo "Invalid option: -$OPTARG" >&2
+            exit 1
+			;;
+		:)	
+			echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+			;;
+	esac
+done
+
+if [ "$#" -gt 0 ]; then
+	scancel $@
+else
+    show_help
+fi

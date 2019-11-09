@@ -1,0 +1,231 @@
+#!/usr/bin/perl -w
+###############################################################################
+# Batch Queuing Tools (bqTools) 
+#
+# Copyright (C) 2018  Minh-Nghia Nguyen <Minh-Nghia.Nguyen@CalculQuebec.ca>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+###############################################################################
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+
+main();
+
+###############################################################################
+# Get all partitions
+###############################################################################
+sub getpartitions {
+    my @results;
+
+	open(SINFO, "sinfo -o '%R' |");
+
+	while (<SINFO>) {
+		next if (/PARTITION/);
+		chomp;
+		push(@results, $_);
+	}
+
+	close(SINFO);
+
+	return @results       
+}
+
+###############################################################################
+# Main program
+###############################################################################
+sub main {
+    my $help = 0;
+    my $user = 0;
+
+    GetOptions( 'help|?' => \$help,
+                'u'      => \$user)
+                 or pod2usage(1);
+
+    if ($help) {    
+        pod2usage(1);
+    }
+    else {
+        show($user);
+    }
+}
+
+###############################################################################
+# Display output
+###############################################################################
+sub show {
+    my ($showUser) = @_;
+
+	printf "---------------------------------------------------------------------------------\n";
+	
+	printf "%-18s %6s %6s %6s %6s %6s %6s %6s %6s %6s\n",
+			"",
+			"Jobs",
+			"Cores",
+			"Jobs",
+			"Cores",
+			"Nodes",
+			"Nodes",
+			"Nodes",
+			"Nodes",
+			"Nodes";
+
+	printf "%-18s %6s %6s %6s %6s %6s %6s %6s %6s %6s\n",
+			"User/Partition",
+			"Que",
+			"Req",
+			"Run",
+			"Run",
+			"Run",
+			"Free",
+			"Down",
+			"Off",
+			"Total";
+
+    printf "---------------------------------------------------------------------------------\n";
+
+	foreach my $partition (getpartitions())
+	{
+	    my %data = ();
+	    my %part = ();
+	    my %nodesstate = ();
+	    my %cpusstate  = ();
+
+	    #-----------------------------------------------------------------------------
+	    # squeue
+	    #-----------------------------------------------------------------------------
+	    open(SQUEUE, "squeue -r -o '%u %t %r %D %C' --partition=$partition |");
+
+	    while (<SQUEUE>) {
+		    # USER ST REASON NODES CPUS
+		    if (/(\S+)\s+(\S+)\s+(\S+)\s+(\d+)\s+(\d+)/) {			
+			    my ($user,$st,$reason,$nodes,$cpus) = ($1,$2,$3,$4,$5);
+			    $data{$user}{$st}{jobs}  += 1;
+			    $data{$user}{$st}{cpus}  += $cpus;
+			    $data{$user}{$st}{nodes} += $nodes;
+			    $data{ALL}{$st}{jobs}  += 1;
+			    $data{ALL}{$st}{cpus}  += $cpus;
+			    $data{ALL}{$st}{nodes} += $nodes;			
+		    }
+	    }
+
+	    close(SQUEUE);
+
+	    #-----------------------------------------------------------------------------
+	    # sinfo
+	    #-----------------------------------------------------------------------------
+	    open(SINFO1, "sinfo -o '%F %C' --partition=$partition |");
+
+	    while (<SINFO1>) {
+		    if (/(\d+)\/(\d+)\/(\d+)\/(\d+)\s+(\d+)\/(\d+)\/(\d+)\/(\d+)/) {
+			    $nodesstate{allocated} = $1;
+			    $nodesstate{idle}      = $2;
+			    $nodesstate{other}     = $3;
+			    $nodesstate{total}     = $4;			
+			    $cpusstate{allocated}  = $5;
+			    $cpusstate{idle}       = $6;
+			    $cpusstate{other}      = $7;
+			    $cpusstate{total}      = $8;
+		    }
+	    }
+
+	    close(SINFO1);
+
+	    #-----------------------------------------------------------------------------
+	    # sinfo
+	    #-----------------------------------------------------------------------------
+	    open(SINFO, "sinfo -o '%P %a %D %t' --partition=$partition |");
+
+	    while (<SINFO>) {
+		    # Remove *
+		    $_ =~ tr/*/ /;
+
+		    # PARTITION AVAIL  NODES STATE
+		    if (/(\S+)\s+(\S+)\s+(\d+)\s+(\S+)/) {
+			    my ($partition,$avail,$nodes,$state) = ($1,$2,$3,$4);			
+			    $part{$partition}{$state} += $nodes;
+			    $part{$partition}{total} += $nodes;
+		    }			
+	    }
+
+	    close (SINFO);
+
+	    #-----------------------------------------------------------------------------
+	    # print
+	    # ----------------------------------------------------------------------------
+        if ($showUser) {
+	        my $nbuser = 0;
+	        foreach my $user (sort keys %data) {
+		        next if ($user eq "ALL");			
+		        printf "%-18s %6d %6d %6d %6d %6d\n", 
+			        $user,
+			        (defined($data{$user}{PD}{jobs}) ? $data{$user}{PD}{jobs} : 0),
+			        (defined($data{$user}{PD}{cpus}) ? $data{$user}{PD}{cpus} : 0),	
+			        (defined($data{$user}{R}{jobs})  ? $data{$user}{R}{jobs}  : 0),
+			        (defined($data{$user}{R}{cpus})  ? $data{$user}{R}{cpus}  : 0),
+			        (defined($data{$user}{R}{nodes}) ? $data{$user}{R}{nodes} : 0);
+		        $nbuser++;
+	        }
+
+	        printf "%-18s %6s %6s %6s %6s %6s %6s %6s %6s %6s\n",
+		        "",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----",
+		        "-----" if ($nbuser);
+        }
+
+	    printf "%-18s %6d %6d %6d %6d %6d %6d %6d %6d %6d\n",
+		    $partition,
+		    (defined($data{ALL}{PD}{jobs}) ? $data{ALL}{PD}{jobs} : 0),
+		    (defined($data{ALL}{PD}{cpus}) ? $data{ALL}{PD}{cpus} : 0),
+		    (defined($data{ALL}{R}{jobs})  ? $data{ALL}{R}{jobs}  : 0),
+		    (defined($data{ALL}{R}{cpus})  ? $data{ALL}{R}{cpus}  : 0),
+		    $nodesstate{allocated},
+    #		(defined($part{$partition}{alloc}) ? $part{$partition}{alloc} : 0),
+		    (defined($part{$partition}{idle})  ? $part{$partition}{idle}  : 0),
+		    (defined($part{$partition}{down})  ? $part{$partition}{down}  : 0),
+		    (defined($part{$partition}{drain}) ? $part{$partition}{drain} : 0),
+		    (defined($part{$partition}{total}) ? $part{$partition}{total} : 0);	
+	    printf "---------------------------------------------------------------------------------\n";
+	}
+}
+
+
+=head1 NAME
+
+bqmon
+
+=head1 SYNOPSIS
+
+bqmon [-h] [-u]
+
+=head2 Options
+
+Recognized options include:
+
+=over 4
+
+=item -u
+
+Show all users jobs and nodes
+
+=item -h, --help
+
+Display this help and exit

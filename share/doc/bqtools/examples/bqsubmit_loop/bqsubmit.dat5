@@ -1,0 +1,16 @@
+###############################################################################
+# Lines starting with # are ignored.
+###############################################################################
+
+command=./ohms_law input.dat > output.dat
+submitOptions= -q qwork -l walltime=1:00
+batchName=example5
+
+param1 = resistance = [10.0, 15.0]
+param2 = current = 0.0 : 0.2 : 2.0 
+
+templateFiles = ./input.dat
+linkFiles = ./ohms_law
+
+microJobs = 5
+concurrentJobs = 3

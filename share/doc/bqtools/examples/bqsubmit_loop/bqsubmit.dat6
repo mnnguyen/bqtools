@@ -1,0 +1,13 @@
+###############################################################################
+# Lines starting with # are ignored.
+###############################################################################
+
+command=./ohms_law input.dat > output.dat
+submitOptions= -q qwork -l walltime=1:00
+batchName=example6
+
+param1 = (resistance, current) = [(10.0, 0.0), (11.0, 1.1), (12.0, 1.2)]
+
+templateFiles = ./input.dat
+linkFiles = ./ohms_law
+
